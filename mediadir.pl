@@ -25,7 +25,7 @@
 =head4
 
  saves attached media from tweets to a media directory
- media directory can be set by adding 
+ media directory can be set by adding
     extpref_mediadir=/full/path/to/dir
  to your .oystterrc file, avoid adding trailing slashes
  else the mediadir defaults to
@@ -111,7 +111,7 @@ $handle = sub {
         }
         foreach (@{$ref->{'extended_entities'}->{'media'}[0]->{'video_info'}->
             {'variants'}}) {
-            if (exists $_->{'bitrate'} and $_->{'bitrate'} == $br) { 
+            if (exists $_->{'bitrate'} and $_->{'bitrate'} == $br) {
                 save_media($_->{'url'});
                 last;
             }
@@ -141,13 +141,13 @@ sub save_media {
     my $f = basename($url);
     # remove junk from filenames
     $f =~ s/:orig$|\?tag=[0-9]$//;
-    
+
     # file already has been saved
-    if (-e $f) { 
+    if (-e "$store->{'mediadir'}/$f") {
         return 0;
     }
     # TODO: make limit-rate configurable
-    system('curl', '--silent', '--limit-rate', '200K', '--output', 
+    system('curl', '--silent', '--limit-rate', '200K', '--output',
         "$store->{'mediadir'}/$f", "$url");
     # may be unable to save the media, say if deleted between reciving the
     # tweet and the tweet finishing being parsed / the handle being called.
