@@ -3,7 +3,6 @@
 
 =pod LICENSE
 
-
  BSD-0
  Copyright (C) 2018, Ekho <ekho@ekho,email> \ EkhoNet::Ag_Labs
 
@@ -84,11 +83,13 @@ $handle = sub {
 
     # Twitter API-compliant applications are required to check for this
     # if protected user preform default and return without saving media
-    if ($ref->{'user'}->{'protected'} eq 'true') {
+    if (exists $ref->{'user'} and exists $ref->{'user'}->{'protected'} and
+        $ref->{'user'}->{'protected'} eq 'true') {
         &defaulthandle($ref);
         return 1;
     }
 
+    # TODO: make this cleaner
     if (not exists $ref->{'extended_entities'}->{'media'} or
         not defined $ref->{'extended_entities'}->{'media'}[0]->{type}) {
         &defaulthandle($ref);
@@ -134,8 +135,7 @@ $handle = sub {
 sub save_media {
     my $url = shift;
 
-    # remove the backslashes from url, taken from
-    # https://github.com/oysttyer/oysttyer-deshortify/blob/b6033df0b08dfe2aceacb0431a72c7a9f1d9ec18/deshortify.pl#L967
+    # remove the backslashes from url
     $url =~ s/\\\//\//g;
 
     my $f = basename($url);
@@ -150,7 +150,8 @@ sub save_media {
     system('curl', '--silent', '--limit-rate', '200K', '--output',
         "$store->{'mediadir'}/$f", "$url");
     # may be unable to save the media, say if deleted between reciving the
-    # tweet and the tweet finishing being parsed / the handle being called.
+    # tweet and the tweet finishing being parsed / the handle being called
+    # or if the connection times out
     if (($? >> 8) > 0) {
         print("** unable to save '$url'\n");
     }
