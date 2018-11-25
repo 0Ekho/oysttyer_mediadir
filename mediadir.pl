@@ -66,6 +66,11 @@ if (defined $extpref_mediadir) {
     print("** extpref_mediadir not set, falling back to default\n");
     $store->{'mediadir'} = DEFAULT_MEDIADIR;
 }
+if (defined $extpref_mediadir_debug) {
+    $store->{'mediadir_debug'} = $extpref_mediadir_debug
+} else {
+    $store->{'mediadir_debug'} = 0;
+}
 
 print("** mediadir is set to '$store->{'mediadir'}'\n");
 
@@ -89,41 +94,62 @@ $handle = sub {
         return 1;
     }
 
+    #if ($store->{'mediadir_debug'} >= 5) {
+    #        use Data::Dumper;
+    #        print("***DEBUG: ENTIRE hashref dump: \n");
+    #        print(Dumper($ref));
+    #}
+
     # TODO: make this cleaner
+    my $is_rt = 0;
     if (not exists $ref->{'extended_entities'}->{'media'} or
         not defined $ref->{'extended_entities'}->{'media'}[0]->{type}) {
-        &defaulthandle($ref);
-        return 1;
+        if (not exists $ref->{'retweeted_status'}->{'extended_entities'}->
+            {'media'} or not defined $ref->{'retweeted_status'}->
+            {'extended_entities'}->{'media'}[0]->{type}) {
+            &defaulthandle($ref);
+            return 1;
+        } else {
+            $is_rt = 1;
+        }
     }
 
-    my $type = $ref->{'extended_entities'}->{'media'}[0]->{type};
+    my $ee;
+    if ($is_rt == 1) {
+        if ($store->{'mediadir_debug'} >= 2) {
+            print("***DEBUG: EE set from retweeted_status\n");
+        }
+        $ee = $ref->{'retweeted_status'}->{'extended_entities'};
+    } else {
+        $ee = $ref->{'extended_entities'}; 
+    }
+
+    my $type = $ee->{'media'}[0]->{type};
+    if ($store->{'mediadir_debug'} >= 2) {
+        print("***DEBUG: EEMEDIA with type '$type' found\n");
+    }
 
     if ($type eq 'photo') {
-        foreach (@{$ref->{'extended_entities'}->{'media'}}) {
+        foreach (@{$ee->{'media'}}) {
             save_media($_->{'media_url_https'} . ':orig');
         }
     } elsif ($type eq 'video') {
         my $br = 0;
-        foreach (@{$ref->{'extended_entities'}->{'media'}[0]->{'video_info'}->
-            {'variants'}}) {
+        foreach (@{$ee->{'media'}[0]->{'video_info'}->{'variants'}}) {
             if (exists $_->{'bitrate'} and $_->{'bitrate'} > $br) {
                 $br = $_->{'bitrate'};
             }
         }
-        foreach (@{$ref->{'extended_entities'}->{'media'}[0]->{'video_info'}->
-            {'variants'}}) {
+        foreach (@{$ee->{'media'}[0]->{'video_info'}->{'variants'}}) {
             if (exists $_->{'bitrate'} and $_->{'bitrate'} == $br) {
                 save_media($_->{'url'});
                 last;
             }
         }
-        save_media($ref->{'extended_entities'}->{'media'}[0]->
-            {'media_url_https'});
+        save_media($ee->{'media'}[0]->{'media_url_https'});
     } elsif ($type eq 'animated_gif') {
-        save_media($ref->{'extended_entities'}->{'media'}[0]->
-            {'media_url_https'});
-        save_media($ref->{'extended_entities'}->{'media'}[0]->{'video_info'}->
-            {'variants'}[0]->{'url'});
+        save_media($ee->{'media'}[0]->{'media_url_https'});
+        save_media($ee->{'media'}[0]->{'video_info'}->{'variants'}[0]->{'url'});
     }
 
     &defaulthandle($ref);
@@ -145,6 +171,9 @@ sub save_media {
     # file already has been saved
     if (-e "$store->{'mediadir'}/$f") {
         return 0;
+    }
+    if ($store->{'mediadir_debug'} >= 1) {
+        print("***DEBUG: saving '$url'\n");
     }
     # TODO: make limit-rate configurable
     system('curl', '--silent', '--limit-rate', '200K', '--output',
