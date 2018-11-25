@@ -29,6 +29,9 @@
  to your .oystterrc file, avoid adding trailing slashes
  else the mediadir defaults to
     ~/.local/share/twitter_media
+ optionally set 
+    extpref_mediadir_ratelimit=200K
+ to adjust rate limit on downloads (value follows curl(1) --limit-rate)
 
 =cut
 
@@ -48,7 +51,8 @@ use File::Path qw(make_path);
 # constants
 use constant {
     VERSION_STRING_MD => '0.0.1-alpha',
-    DEFAULT_MEDIADIR => "$ENV{'HOME'}/.local/share/oysttyer_media"
+    DEFAULT_MEDIADIR => "$ENV{'HOME'}/.local/share/oysttyer_media",
+    DEFAULT_RATELIMIT => "1M"
 };
 
 # -----------------------------------------------------------------------------
@@ -66,13 +70,22 @@ if (defined $extpref_mediadir) {
     print("** extpref_mediadir not set, falling back to default\n");
     $store->{'mediadir'} = DEFAULT_MEDIADIR;
 }
+if (defined $extpref_mediadir_ratelimit) {
+    $store->{'mediadir_ratelimit'} = $extpref_mediadir_ratelimit;
+} else {
+    print("** extpref_mediadir_ratelimit not set, falling back to",
+    DEFAULT_RATELIMIT, "\n");
+    $store->{'mediadir_ratelimit'} = DEFAULT_RATELIMIT;
+}
 if (defined $extpref_mediadir_debug) {
-    $store->{'mediadir_debug'} = $extpref_mediadir_debug
+    $store->{'mediadir_debug'} = $extpref_mediadir_debug;
+    print("** mediadir debug enabled (level $store->{'mediadir_debug'})\n");
 } else {
     $store->{'mediadir_debug'} = 0;
 }
 
 print("** mediadir is set to '$store->{'mediadir'}'\n");
+print("** mediadir rate limit is set to '$store->{'mediadir_ratelimit'}'\n");
 
 if (not -e $store->{'mediadir'}) {
     print("** mediadir does not exist, creating...\n");
@@ -121,7 +134,7 @@ $handle = sub {
         }
         $ee = $ref->{'retweeted_status'}->{'extended_entities'};
     } else {
-        $ee = $ref->{'extended_entities'}; 
+        $ee = $ref->{'extended_entities'};
     }
 
     my $type = $ee->{'media'}[0]->{type};
@@ -175,9 +188,8 @@ sub save_media {
     if ($store->{'mediadir_debug'} >= 1) {
         print("***DEBUG: saving '$url'\n");
     }
-    # TODO: make limit-rate configurable
-    system('curl', '--silent', '--limit-rate', '200K', '--output',
-        "$store->{'mediadir'}/$f", "$url");
+    system('curl', '--silent', '--limit-rate', $store->{'mediadir_ratelimit'},
+        '--output', "$store->{'mediadir'}/$f", "$url");
     # may be unable to save the media, say if deleted between reciving the
     # tweet and the tweet finishing being parsed / the handle being called
     # or if the connection times out

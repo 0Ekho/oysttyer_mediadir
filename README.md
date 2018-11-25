@@ -6,6 +6,10 @@ oysttyer extension to automatically save twitter media attachments to a director
 set ```extpref_mediadir=/full/path/to/dir``` in your ```.oystterrc``` file, then load the
 extension as normal
 
+there is also
+```extpref_mediadir_ratelimit=200K```
+that can be set to adjust the download rate limiting, value follows ```curl(1) --limit-rate```
+
 ## Drawbacks / Known issues
 * the media file is downloaded before displaying the tweet, with larger files like video this may
 make the tweets delayed on slower connections
