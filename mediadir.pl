@@ -140,7 +140,7 @@ sub save_media {
 
     my $f = basename($url);
     # remove junk from filenames
-    $f =~ s/:orig$|\?tag=[0-9]$//;
+    $f =~ s/:orig$|\?tag=[0-9]+$//;
 
     # file already has been saved
     if (-e "$store->{'mediadir'}/$f") {
