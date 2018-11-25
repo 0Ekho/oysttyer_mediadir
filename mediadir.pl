@@ -4,7 +4,7 @@
 =pod LICENSE
 
  BSD-0
- Copyright (C) 2018, Ekho <ekho@ekho,email> \ EkhoNet::Ag_Labs
+ Copyright (C) 2018, Ekho <ekho@ekho,email>
 
  Permission to use, copy, modify, and/or distribute this software for any
  purpose with or without fee is hereby granted.
