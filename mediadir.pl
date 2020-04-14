@@ -29,7 +29,7 @@
  to your .oystterrc file, avoid adding trailing slashes
  else the mediadir defaults to
     ~/.local/share/twitter_media
- optionally set 
+ optionally set
     extpref_mediadir_ratelimit=200K
  to adjust rate limit on downloads (value follows curl(1) --limit-rate)
 
@@ -188,7 +188,8 @@ sub save_media {
     if ($store->{'mediadir_debug'} >= 1) {
         print("***DEBUG: saving '$url'\n");
     }
-    system('curl', '--silent', '--limit-rate', $store->{'mediadir_ratelimit'},
+    system('curl', '--silent', '-m' '600'
+        '--limit-rate', $store->{'mediadir_ratelimit'},
         '--output', "$store->{'mediadir'}/$f", "$url");
     # may be unable to save the media, say if deleted between reciving the
     # tweet and the tweet finishing being parsed / the handle being called
