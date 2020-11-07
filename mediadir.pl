@@ -32,6 +32,9 @@
  optionally set
     extpref_mediadir_ratelimit=200K
  to adjust rate limit on downloads (value follows curl(1) --limit-rate)
+ or
+    extpref_mediadir_nothumb=1
+ to disable saving video / gif thumbnails
 
 =cut
 
@@ -48,7 +51,7 @@ use File::Path qw(make_path);
 #binmode(STDIN, ":encoding(UTF-8)");
 
 # -----------------------------------------------------------------------------
-# constants
+#
 use constant {
     VERSION_STRING_MD => '0.0.1-alpha',
     DEFAULT_MEDIADIR => "$ENV{'HOME'}/.local/share/oysttyer_media",
@@ -76,6 +79,12 @@ if (defined $extpref_mediadir_ratelimit) {
     print("** extpref_mediadir_ratelimit not set, falling back to",
     DEFAULT_RATELIMIT, "\n");
     $store->{'mediadir_ratelimit'} = DEFAULT_RATELIMIT;
+}
+if (defined $extpref_mediadir_nothumb) {
+    $store->{'nothumb'} = 1;
+    print("** extpref_mediadir disabled saving thumbnails\n");
+} else {
+    $store->{'nothumb'} = 0;
 }
 if (defined $extpref_mediadir_debug) {
     $store->{'mediadir_debug'} = $extpref_mediadir_debug;
@@ -159,9 +168,13 @@ $handle = sub {
                 last;
             }
         }
-        save_media($ee->{'media'}[0]->{'media_url_https'});
+        if (! $store->{'nothumb'}) {
+            save_media($ee->{'media'}[0]->{'media_url_https'});
+        }
     } elsif ($type eq 'animated_gif') {
-        save_media($ee->{'media'}[0]->{'media_url_https'});
+        if (! $store->{'nothumb'}) {
+            save_media($ee->{'media'}[0]->{'media_url_https'});
+        }
         save_media($ee->{'media'}[0]->{'video_info'}->{'variants'}[0]->{'url'});
     }
 
@@ -188,7 +201,7 @@ sub save_media {
     if ($store->{'mediadir_debug'} >= 1) {
         print("***DEBUG: saving '$url'\n");
     }
-    system('curl', '--silent', '-m' '600'
+    system('curl', '--silent', '-m', '600',
         '--limit-rate', $store->{'mediadir_ratelimit'},
         '--output', "$store->{'mediadir'}/$f", "$url");
     # may be unable to save the media, say if deleted between reciving the
